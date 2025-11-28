@@ -1,0 +1,24 @@
+# Arabic OCR PDF Extraction Dependencies
+# Core PDF processing
+pdf2image>=1.16.3
+PyMuPDF>=1.23.0
+
+# OCR Engines
+pytesseract>=0.3.10
+easyocr>=1.7.0
+
+# Image processing
+Pillow>=10.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# Document generation
+python-docx>=0.8.11
+
+# Utilities
+tqdm>=4.66.0
+
+# Optional: Cloud OCR APIs (uncomment if needed)
+# google-cloud-vision>=3.4.0
+# azure-cognitiveservices-vision-computervision>=0.9.0
+# boto3>=1.28.0  # For AWS Textract
