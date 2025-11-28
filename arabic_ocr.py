@@ -771,8 +771,6 @@ class ArabicOCR:
                     logger.error(f"Fallback OCR engine failed: {e}")
         
         return text_blocks, confidence
-        
-        return text_blocks, confidence
     
     def process_batch(
         self,
