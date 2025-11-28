@@ -479,6 +479,9 @@ class StructurePreserver:
         result_parts = []
         threshold = self.config.get("horizontal_space_threshold", 2.0)
         
+        # Calculate average character width once (moved outside loop for efficiency)
+        avg_width = np.mean([b.width / max(1, len(b.text)) for b in blocks])
+        
         for i, block in enumerate(blocks):
             result_parts.append(block.text)
             
@@ -488,8 +491,6 @@ class StructurePreserver:
                     gap = block.x - (next_block.x + next_block.width)
                 else:
                     gap = next_block.x - (block.x + block.width)
-                
-                avg_width = np.mean([b.width / max(1, len(b.text)) for b in blocks])
                 
                 if gap > avg_width * threshold:
                     # Add extra space for large gaps
@@ -732,7 +733,14 @@ class ArabicOCR:
     def _perform_ocr(self, image: np.ndarray) -> Tuple[List[TextBlock], float]:
         """Perform OCR using configured engine(s)."""
         text_blocks = []
-        confidence = 0
+        confidence = 0.0
+        
+        def calculate_avg_confidence(blocks: List[TextBlock]) -> float:
+            """Safely calculate average confidence from text blocks."""
+            if not blocks:
+                return 0.0
+            confidences = [b.confidence for b in blocks]
+            return float(np.mean(confidences)) if confidences else 0.0
         
         # Try primary engine
         primary_engine = self.tesseract if self.ocr_engine == "tesseract" else self.easyocr
@@ -740,8 +748,7 @@ class ArabicOCR:
         if primary_engine:
             try:
                 text_blocks = primary_engine.recognize(image)
-                if text_blocks:
-                    confidence = np.mean([b.confidence for b in text_blocks])
+                confidence = calculate_avg_confidence(text_blocks)
             except Exception as e:
                 logger.error(f"Primary OCR engine failed: {e}")
         
@@ -752,17 +759,18 @@ class ArabicOCR:
             if fallback_engine:
                 try:
                     fallback_blocks = fallback_engine.recognize(image)
-                    if fallback_blocks:
-                        fallback_confidence = np.mean([b.confidence for b in fallback_blocks])
-                        if fallback_confidence > confidence:
-                            text_blocks = fallback_blocks
-                            confidence = fallback_confidence
-                            logger.debug(
-                                f"Switched to fallback engine "
-                                f"(confidence: {fallback_confidence:.1f}%)"
-                            )
+                    fallback_confidence = calculate_avg_confidence(fallback_blocks)
+                    if fallback_confidence > confidence:
+                        text_blocks = fallback_blocks
+                        confidence = fallback_confidence
+                        logger.debug(
+                            f"Switched to fallback engine "
+                            f"(confidence: {fallback_confidence:.1f}%)"
+                        )
                 except Exception as e:
                     logger.error(f"Fallback OCR engine failed: {e}")
+        
+        return text_blocks, confidence
         
         return text_blocks, confidence
     
